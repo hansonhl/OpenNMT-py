@@ -716,6 +716,10 @@ def translate_opts(parser):
               help="Using grayscale image can training "
                    "model faster and smaller")
 
+    group = parser.add_argument_group('RSA')
+    group.add('--RSA', '-RSA', action='store_true',
+              help='Use RSA model when translating.')
+
 
 # Copyright 2016 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be

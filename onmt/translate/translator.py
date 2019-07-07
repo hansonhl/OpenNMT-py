@@ -29,16 +29,30 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
 
     scorer = onmt.translate.GNMTGlobalScorer.from_opt(opt)
 
-    translator = Translator.from_opt(
-        model,
-        fields,
-        opt,
-        model_opt,
-        global_scorer=scorer,
-        out_file=out_file,
-        report_score=report_score,
-        logger=logger
-    )
+    if opt.RSA:
+        from onmt.translate.RSA import RSATranslator
+        print('Using RSA model')
+        translator = RSATranslator.from_opt(
+            model,
+            fields,
+            opt,
+            model_opt,
+            global_scorer=scorer,
+            out_file=out_file,
+            report_score=report_score,
+            logger=logger
+        )
+    else:
+        translator = Translator.from_opt(
+            model,
+            fields,
+            opt,
+            model_opt,
+            global_scorer=scorer,
+            out_file=out_file,
+            report_score=report_score,
+            logger=logger
+        )
     return translator
 
 
@@ -185,7 +199,7 @@ class Translator(object):
 
     @classmethod
     def from_opt(
-            cls,
+            cls, # self
             model,
             fields,
             opt,

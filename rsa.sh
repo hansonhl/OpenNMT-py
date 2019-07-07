@@ -10,4 +10,5 @@ python translate.py -batch_size 20 \
                     -length_penalty wu \
                     -alpha 0.9 \
                     -block_ngram_repeat 3 \
-                    -ignore_when_blocking "." "</t>" "<t>"
+                    -ignore_when_blocking "." "</t>" "<t>" \
+                    -RSA
