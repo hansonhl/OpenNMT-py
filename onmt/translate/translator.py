@@ -546,20 +546,23 @@ class Translator(object):
             memory_lengths,
             src_map=None,
             step=None,
-            batch_offset=None):
+            batch_offset=None,
+            verbose=False):
         if self.copy_attn:
             # Turn any copied words into UNKs.
             decoder_in = decoder_in.masked_fill(
                 decoder_in.gt(self._tgt_vocab_len - 1), self._tgt_unk_idx
             )
 
-        # Decoder forward, takes [tgt_len, batch, nfeats] as input
+        # Decoder forward, takes [tgt_len, batch, nfeats] as input [1,20,1]
         # and [src_len, batch, hidden] as memory_bank
         # in case of inference tgt_len = 1, batch = beam times batch_size
         # in case of Gold Scoring tgt_len = actual length, batch = 1 batch
         dec_out, dec_attn = self.model.decoder(
             decoder_in, memory_bank, memory_lengths=memory_lengths, step=step
         )
+        # dec_out has shape [1, 20, 512] 512 is wordvec size
+        # dec_attn has shape [1, 20, 1311] 1311 is src length
 
         # Generator forward.
         if not self.copy_attn:
@@ -576,6 +579,8 @@ class Translator(object):
                                           attn.view(-1, attn.size(2)),
                                           src_map)
             # here we have scores [tgt_lenxbatch, vocab] or [beamxbatch, vocab]
+            # batch_offset is not none,
+            # scores: [20, 50511] where 50511 is the size of the extended vocab
             if batch_offset is None:
                 scores = scores.view(batch.batch_size, -1, scores.size(-1))
             else:
@@ -613,6 +618,9 @@ class Translator(object):
 
         # (1) Run the encoder on the src.
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
+        # src has shape [1311, 2, 1]
+        # enc_states has shape [1311, 2, 512]
+        # Memory_bank has shape [1311, 2, 512]
         self.model.decoder.init_state(src, memory_bank, enc_states)
 
         results = {
@@ -638,6 +646,7 @@ class Translator(object):
             memory_bank = tile(memory_bank, beam_size, dim=1)
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
+        print('memory_bank size after tile:', memory_bank.shape)#[1311, 20, 512]
 
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
@@ -658,9 +667,14 @@ class Translator(object):
             exclusion_tokens=self._exclusion_idxs,
             memory_lengths=memory_lengths)
 
+        all_log_probs = []
+        all_attn = []
+
         for step in range(max_length):
             decoder_input = beam.current_predictions.view(1, -1, 1)
-
+            # decoder_input has shape[1,20,1]
+            # decoder_input gives top 10 predictions for each batch element
+            verbose = True if step == 10 else False
             log_probs, attn = self._decode_and_generate(
                 decoder_input,
                 memory_bank,
@@ -669,9 +683,16 @@ class Translator(object):
                 memory_lengths=memory_lengths,
                 src_map=src_map,
                 step=step,
-                batch_offset=beam._batch_offset)
+                batch_offset=beam._batch_offset,
+                verbose=verbose)
 
-            beam.advance(log_probs, attn)
+            # log_probs and attn are the probs for next word given that the
+            # current word is that in decoder_input
+            all_log_probs.append(log_probs)
+            all_attn.append(attn)
+
+            beam.advance(log_probs, attn, verbose=verbose)
+
             any_beam_is_finished = beam.is_finished.any()
             if any_beam_is_finished:
                 beam.update_finished()
@@ -695,6 +716,12 @@ class Translator(object):
 
             self.model.decoder.map_state(
                 lambda state, dim: state.index_select(dim, select_indices))
+
+        print('batch_size:', batch_size)
+        print('max_length:', max_length)
+        print('all_log_probs has len', len(all_log_probs))
+        print('all_log_probs[0].shape', all_log_probs[0].shape)
+        print('comparing log_probs[0]', all_log_probs[2][:,0])
 
         results["scores"] = beam.scores
         results["predictions"] = beam.predictions

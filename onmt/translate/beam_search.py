@@ -118,12 +118,16 @@ class BeamSearch(DecodeStrategy):
         return self.select_indices.view(self.batch_size, self.beam_size)\
             .fmod(self.beam_size)
 
-    def advance(self, log_probs, attn):
+    def advance(self, log_probs, attn, verbose=False):
+        # log_probs has shape [20, 50511] = [beam_size * batch_size, ext_vocab_size]
         vocab_size = log_probs.size(-1)
 
         # using integer division to get an integer _B without casting
+        # _B is batch size
         _B = log_probs.shape[0] // self.beam_size
 
+        # still need to figure out what _stepwise_cov_pen and _prev_penalty does
+        # _stepwise_cov_pen means coverage penalty ###
         if self._stepwise_cov_pen and self._prev_penalty is not None:
             self.topk_log_probs += self._prev_penalty
             self.topk_log_probs -= self.global_scorer.cov_penalty(
@@ -135,20 +139,25 @@ class BeamSearch(DecodeStrategy):
         self.ensure_min_length(log_probs)
 
         # Multiply probs by the beam probability.
+        # self.topk_log_probs has shape [batch_size, beam_size] ([2,10])
+        # stores probs of top 10 candidates at current time step
         log_probs += self.topk_log_probs.view(_B * self.beam_size, 1)
 
         self.block_ngram_repeats(log_probs)
 
         # if the sequence ends now, then the penalty is the current
         # length + 1, to include the EOS token
+        # Still need to understand length penalty ###
         length_penalty = self.global_scorer.length_penalty(
             step + 1, alpha=self.global_scorer.alpha)
 
         # Flatten probs into a list of possibilities.
+        if verbose:
+            print('length_penalty:', length_penalty)
         curr_scores = log_probs / length_penalty
         curr_scores = curr_scores.reshape(_B, self.beam_size * vocab_size)
         torch.topk(curr_scores,  self.beam_size, dim=-1,
-                   out=(self.topk_scores, self.topk_ids))
+                   out=(self.topk_scores, self.topk_ids)) #update top k scores
 
         # Recover log probs.
         # Length penalty is just a scalar. It doesn't matter if it's applied
@@ -171,7 +180,7 @@ class BeamSearch(DecodeStrategy):
             if step == 1:
                 self.alive_attn = current_attn
                 # update global state (step == 1)
-                if self._cov_pen:  # coverage penalty
+                if self._cov_pen:  # coverage penalty, updated here
                     self._prev_penalty = torch.zeros_like(self.topk_log_probs)
                     self._coverage = current_attn
             else:
