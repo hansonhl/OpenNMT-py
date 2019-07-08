@@ -4,7 +4,6 @@ python translate.py -batch_size 20 \
                     -src data/cnndm/test2.txt.src \
                     -output testout/cnndm2.out \
                     -min_length 35 \
-                    -verbose \
                     -stepwise_penalty \
                     -coverage_penalty summary \
                     -beta 5 \

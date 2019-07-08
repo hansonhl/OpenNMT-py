@@ -119,6 +119,7 @@ class BeamSearch(DecodeStrategy):
             .fmod(self.beam_size)
 
     def advance(self, log_probs, attn, verbose=False):
+        # log probs are provided by decoder
         # log_probs has shape [20, 50511] = [beam_size * batch_size, ext_vocab_size]
         vocab_size = log_probs.size(-1)
 
@@ -156,8 +157,12 @@ class BeamSearch(DecodeStrategy):
             print('length_penalty:', length_penalty)
         curr_scores = log_probs / length_penalty
         curr_scores = curr_scores.reshape(_B, self.beam_size * vocab_size)
+        # reshaped into [batch_size, beamsize * vocab_size]
+
         torch.topk(curr_scores,  self.beam_size, dim=-1,
                    out=(self.topk_scores, self.topk_ids)) #update top k scores
+        # update current predictions to be the new top 10 in beamsize *
+        # vocabsize outcomes per
 
         # Recover log probs.
         # Length penalty is just a scalar. It doesn't matter if it's applied
@@ -168,13 +173,14 @@ class BeamSearch(DecodeStrategy):
         torch.div(self.topk_ids, vocab_size, out=self._batch_index)
         self._batch_index += self._beam_offset[:_B].unsqueeze(1)
         self.select_indices = self._batch_index.view(_B * self.beam_size)
-
-        self.topk_ids.fmod_(vocab_size)  # resolve true word ids
+        self.topk_ids.fmod_(vocab_size)  # resolve true word ids ####
 
         # Append last prediction.
         self.alive_seq = torch.cat(
             [self.alive_seq.index_select(0, self.select_indices),
              self.topk_ids.view(_B * self.beam_size, 1)], -1)
+        if verbose:
+            print('Return_attention:', self.return_attention)
         if self.return_attention or self._cov_pen:
             current_attn = attn.index_select(1, self.select_indices)
             if step == 1:

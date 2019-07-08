@@ -611,6 +611,8 @@ class Translator(object):
         # TODO: support these blacklisted features.
         assert not self.dump_beam
 
+        print('batch:', batch)
+
         # (0) Prep the components of the search.
         use_src_map = self.copy_attn
         beam_size = self.beam_size
@@ -646,7 +648,6 @@ class Translator(object):
             memory_bank = tile(memory_bank, beam_size, dim=1)
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
-        print('memory_bank size after tile:', memory_bank.shape)#[1311, 20, 512]
 
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
@@ -721,7 +722,7 @@ class Translator(object):
         print('max_length:', max_length)
         print('all_log_probs has len', len(all_log_probs))
         print('all_log_probs[0].shape', all_log_probs[0].shape)
-        print('comparing log_probs[0]', all_log_probs[2][:,0])
+        print('all_attn[0].shape', all_attn[0].shape)
 
         results["scores"] = beam.scores
         results["predictions"] = beam.predictions
