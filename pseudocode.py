@@ -96,7 +96,7 @@ def RSA_translate_batch(batch, distractor_generator, ...):
     for step in range(L):
         decoder_input = beam.current_predictions.view(1, -1, 1)
         # Here we let the beam search object only keep track of top b predictions
-        # for the *target* texts, hence `decoder_input` should have shape
+        # for the *target* texts, hence `decoder_input` should still have shape
         # [1, B*b, 1]
 
         aug_decoder_input = augment(decoder_input)
