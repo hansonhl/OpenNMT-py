@@ -105,7 +105,11 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
                 train_shards.append(shard_base)
             train_iter = build_dataset_iter_multiple(train_shards, fields, opt)
         else:
-            train_iter = build_dataset_iter("train", fields, opt)
+            if opt.data_ids[0] is not None:
+                shard_base = "train_" + opt.data_ids[0]
+            else:
+                shard_base = "train"
+            train_iter = build_dataset_iter(shard_base, fields, opt)
 
     else:
         assert semaphore is not None, \
@@ -138,5 +142,5 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         valid_iter=valid_iter,
         valid_steps=opt.valid_steps)
 
-    if opt.tensorboard:
+    if trainer.report_manager.tensorboard_writer is not None:
         trainer.report_manager.tensorboard_writer.close()

@@ -32,7 +32,7 @@ unzip glove.6B.zip -d "glove_dir"
 2) prepare data:
 
 ```
-python preprocess.py \
+onmt_preprocess \
 -train_src data/train.src.txt \
 -train_tgt data/train.tgt.txt \
 -valid_src data/valid.src.txt \
@@ -51,14 +51,14 @@ python preprocess.py \
 4) train using pre-trained embeddings:
 
 ```
-python train.py -save_model data/model \
--batch_size 64 \
--layers 2 \
--rnn_size 200 \
--word_vec_size 100 \
--pre_word_vecs_enc "data/embeddings.enc.pt" \
--pre_word_vecs_dec "data/embeddings.dec.pt" \
-        -data data/data
+onmt_train -save_model data/model \
+           -batch_size 64 \
+           -layers 2 \
+           -rnn_size 200 \
+           -word_vec_size 100 \
+           -pre_word_vecs_enc "data/embeddings.enc.pt" \
+           -pre_word_vecs_dec "data/embeddings.dec.pt" \
+           -data data/data
 ```
 
 
@@ -103,7 +103,7 @@ if you use a regular network card (1 Gbps) then we suggest to use a higher accum
 ## How can I ensemble Models at inference?
 
 You can specify several models in the translate.py command line: -model model1_seed1 model2_seed2
-Bear in mind that your models must share the same traget vocabulary.
+Bear in mind that your models must share the same target vocabulary.
 
 ## How can I weight different corpora at training?
 
