@@ -25,6 +25,19 @@ from onmt.inputters.image_dataset import (  # noqa: F401
 
 import gc
 
+import random
+
+def random_cycle(iterable):
+    random.shuffle(iterable)
+    saved = []
+    for element in interable:
+        yield element
+        saved.append(element)
+    while saved:
+        random.shuffle(saved)
+        for element in saved:
+            yield element
+
 
 # monkey-patch to make torchtext Vocab's pickleable
 def _getstate(self):
@@ -524,9 +537,10 @@ def batch_iter(data, batch_size, batch_size_fn=None, batch_size_multiple=1):
 
 def _pool(data, batch_size, batch_size_fn, batch_size_multiple,
           sort_key, random_shuffler, pool_factor):
-    for p in torchtext.data.batch(
+    ps = list(torchtext.data.batch(
             data, batch_size * pool_factor,
-            batch_size_fn=batch_size_fn):
+            batch_size_fn=batch_size_fn))
+    for p in random_shuffler(ps):
         p_batch = list(batch_iter(
             sorted(p, key=sort_key),
             batch_size,
@@ -537,7 +551,6 @@ def _pool(data, batch_size, batch_size_fn, batch_size_multiple,
 
 
 class OrderedIterator(torchtext.data.Iterator):
-
     def __init__(self,
                  dataset,
                  batch_size,
@@ -730,7 +743,7 @@ class DatasetLazyIter(object):
         paths = self._paths
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
-            paths = cycle(paths)
+            paths = random_cycle(paths)
         for path in paths:
             for batch in self._iter_dataset(path):
                 yield batch
