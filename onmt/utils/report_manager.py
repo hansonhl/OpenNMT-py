@@ -12,9 +12,9 @@ def build_report_manager(opt, gpu_rank):
     if opt.tensorboard and gpu_rank == 0:
         from torch.utils.tensorboard import SummaryWriter
         tensorboard_log_dir = opt.tensorboard_log_dir
-
-        if not opt.train_from:
-            tensorboard_log_dir += datetime.now().strftime("/%b-%d_%H-%M-%S")
+        # 
+        # if not opt.train_from:
+        #     tensorboard_log_dir += datetime.now().strftime("/%b-%d_%H-%M-%S")
 
         writer = SummaryWriter(tensorboard_log_dir, comment="Unmt")
     else:
