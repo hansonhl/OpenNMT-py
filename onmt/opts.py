@@ -501,6 +501,10 @@ def train_opts(parser):
               help="Step for moving average. "
                    "Default is every update, "
                    "if -average_decay is set.")
+    # added by me
+    group.add('--my_shuffle', '-my_shuffle', action='store_true',
+              help="Shuffle order of shards and pools within shards. Currently"
+              "only works with single GPU/CPU training.")
 
     # learning rate
     group = parser.add_argument_group('Optimization- Rate')

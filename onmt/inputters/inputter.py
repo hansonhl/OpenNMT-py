@@ -30,7 +30,7 @@ import random
 def random_cycle(iterable):
     random.shuffle(iterable)
     saved = []
-    for element in interable:
+    for element in iterable:
         yield element
         saved.append(element)
     while saved:
@@ -536,11 +536,13 @@ def batch_iter(data, batch_size, batch_size_fn=None, batch_size_multiple=1):
 
 
 def _pool(data, batch_size, batch_size_fn, batch_size_multiple,
-          sort_key, random_shuffler, pool_factor):
+          sort_key, random_shuffler, pool_factor, my_shuffle=False):
     ps = list(torchtext.data.batch(
             data, batch_size * pool_factor,
             batch_size_fn=batch_size_fn))
-    for p in random_shuffler(ps):
+    if my_shuffle:
+        ps = random_shuffler(ps)
+    for p in ps:
         p_batch = list(batch_iter(
             sorted(p, key=sort_key),
             batch_size,
@@ -557,12 +559,14 @@ class OrderedIterator(torchtext.data.Iterator):
                  pool_factor=1,
                  batch_size_multiple=1,
                  yield_raw_example=False,
+                 my_shuffle=False,
                  **kwargs):
         super(OrderedIterator, self).__init__(dataset, batch_size, **kwargs)
         self.batch_size_multiple = batch_size_multiple
         self.yield_raw_example = yield_raw_example
         self.dataset = dataset
         self.pool_factor = pool_factor
+        self.my_shuffle = my_shuffle
 
     def create_batches(self):
         if self.train:
@@ -580,7 +584,8 @@ class OrderedIterator(torchtext.data.Iterator):
                     self.batch_size_multiple,
                     self.sort_key,
                     self.random_shuffler,
-                    self.pool_factor)
+                    self.pool_factor,
+                    self.my_shuffle)
         else:
             self.batches = []
             for b in batch_iter(
@@ -696,7 +701,8 @@ class DatasetLazyIter(object):
 
     def __init__(self, dataset_paths, fields, batch_size, batch_size_fn,
                  batch_size_multiple, device, is_train, pool_factor,
-                 repeat=True, num_batches_multiple=1, yield_raw_example=False):
+                 repeat=True, num_batches_multiple=1, yield_raw_example=False,
+                 my_shuffle=False):
         self._paths = dataset_paths
         self.fields = fields
         self.batch_size = batch_size
@@ -708,6 +714,7 @@ class DatasetLazyIter(object):
         self.num_batches_multiple = num_batches_multiple
         self.yield_raw_example = yield_raw_example
         self.pool_factor = pool_factor
+        self.my_shuffle = my_shuffle
 
     def _iter_dataset(self, path):
         logger.info('Loading dataset from %s' % path)
@@ -743,7 +750,10 @@ class DatasetLazyIter(object):
         paths = self._paths
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
-            paths = random_cycle(paths)
+            if self.my_shuffle:
+                paths = random_cycle(paths)
+            else:
+                paths = cycle(paths)
         for path in paths:
             for batch in self._iter_dataset(path):
                 yield batch
@@ -819,7 +829,8 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True, multi=False):
         opt.pool_factor,
         repeat=not opt.single_pass,
         num_batches_multiple=max(opt.accum_count) * opt.world_size,
-        yield_raw_example=multi)
+        yield_raw_example=multi,
+        my_shuffle=opt.my_shuffle)
 
 
 def build_dataset_iter_multiple(train_shards, fields, opt):
