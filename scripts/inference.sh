@@ -1,0 +1,13 @@
+python translate.py -batch_size 20 \
+                    -beam_size 10 \
+                    -model models/sum_transformer_model_acc_57.25_ppl_9.22_e16.pt \
+                    -src data/cnndm/test2.txt.src \
+                    -output testout/cnndm2.out \
+                    -min_length 35 \
+                    -stepwise_penalty \
+                    -coverage_penalty summary \
+                    -beta 5 \
+                    -length_penalty wu \
+                    -alpha 0.9 \
+                    -block_ngram_repeat 3 \
+                    -ignore_when_blocking "." "</t>" "<t>"

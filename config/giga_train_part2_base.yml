@@ -1,0 +1,39 @@
+save_model: '/content/drive/My Drive/train_models/giga_halfsplit_part2_base'
+data: '/content/drive/My Drive/train_data/giga_halfsplit_part2'
+src_word_vec_size: 500
+tgt_word_vec_size: 500
+share_embeddings: False
+encoder_type: brnn
+bridge: True
+layers: 2
+rnn_size: 500
+
+coverage_attn: True
+
+copy_attn: True
+reuse_copy_attn: True
+global_attention: mlp
+
+copy_loss_by_seqlength: True
+lambda_coverage: 1.0
+
+train_steps: 180934
+valid_steps: 20000
+save_checkpoint_steps: 20000
+batch_size: 64
+valid_batch_size: 64
+
+max_grad_norm: 2
+dropout: 0.1
+
+optim: adagrad
+learning_rate: 0.15
+adagrad_accumulator_init: 0.1
+start_decay_steps: 103391
+learning_rate_decay: 0.6
+decay_steps: 51696
+
+seed: 777
+world_size: 1
+gpu_ranks:
+- 0

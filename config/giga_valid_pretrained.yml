@@ -1,0 +1,15 @@
+save_model: 'models/giga_test_train'
+data: 'data/giga/giga_part1/data/giga_halfsplit_part1'
+train_from: 'models/gigaword_copy_acc_51.78_ppl_11.71_e20.pt'
+model_dtype: 'fp32'
+
+train_steps: 1
+valid_steps: 1
+save_checkpoint_steps: 2
+batch_size: 64
+valid_batch_size: 32
+
+seed: -1
+world_size: 1
+gpu_ranks:
+- 0
