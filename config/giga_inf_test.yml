@@ -1,7 +1,0 @@
-batch_size: 64
-beam_size: 10
-model: /home/hansonlu/links/data/giga-models/giga_halfsplit_pt2_nocov_step_59156.pt
-src: /home/hansonlu/myOpenNMT/data/giga/input.txt
-output: /home/hansonlu/myOpenNMT/testout/nocov_halfsplit2_epoch4.txt
-verbose: True
-gpu: 0
